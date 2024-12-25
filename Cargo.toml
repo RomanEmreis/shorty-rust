@@ -1,0 +1,17 @@
+[package]
+name = "shorty"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+#bb8 = "0.9.0"
+chrono = "0.4.39"
+#diesel-async = { version = "0.5.2", features = ["bb8", "postgres"] }
+diesel = { version = "2.2.0", features = ["postgres", "chrono"] }
+serde = { version = "1.0.216", features = ["derive"] }
+tokio = { version = "1.42.0", features = ["full"] }
+volga = { version = "0.4.4", features = ["di"] }
+
+[[bin]]
+name = "shorty"
+path = "src/main.rs"
