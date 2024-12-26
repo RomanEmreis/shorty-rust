@@ -1,20 +1,24 @@
 ﻿use chrono::Local;
-use diesel::prelude::*;
-use volga::{ok, HttpResult, Json};
-use volga::di::Dc;
 
-use crate::DbContext;
-use crate::models::ShortUrl;
-use crate::schema::shorty_urls;
-use crate::token::Token;
+use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
+
+use volga::{HttpResult, Json, di::Dc, ok, status};
+
+use crate::{
+    db::{DbContext, DbError},
+    schema::shorty_urls,
+    models::ShortUrl,
+    token::Token
+};
 
 #[derive(serde::Deserialize)]
-pub struct NewUrl { 
+pub(crate) struct NewUrl { 
     pub url: String,
 }
 
-pub async fn create_url(new_url: Json<NewUrl>, db_ctx: Dc<DbContext>) -> HttpResult {
-    let mut conn = db_ctx.get_connection();
+pub(crate) async fn create_url(new_url: Json<NewUrl>, db_ctx: Dc<DbContext>) -> HttpResult {
+    let mut conn = db_ctx.get_connection().await?;
 
     let token = Token::new(57_000_000_000).to_string(); 
     let record = ShortUrl { 
@@ -27,20 +31,28 @@ pub async fn create_url(new_url: Json<NewUrl>, db_ctx: Dc<DbContext>) -> HttpRes
         .values(&record)
         .returning(ShortUrl::as_returning())
         .get_result(&mut conn)
-        .unwrap();
+        .await
+        .map_err(DbError::query_error)?;
     
     ok!()
 }
 
-pub async fn get_url(token: String, db_ctx: Dc<DbContext>) -> HttpResult {
-    let mut conn = db_ctx.get_connection();
+pub(crate) async fn get_url(token: String, db_ctx: Dc<DbContext>) -> HttpResult {
+    let mut conn = db_ctx.get_connection().await?;
     
-    let res = shorty_urls::table
+    let res: Vec<String> = shorty_urls::table
         .filter(shorty_urls::token.eq(token))
         .limit(1)
-        .select(ShortUrl::as_select())
+        .select(shorty_urls::url)
         .load(&mut conn)
-        .unwrap();
+        .await
+        .map_err(DbError::query_error)?;
     
-    ok!(&res[0].url)
+    if res.is_empty() { 
+        status!(404)
+    } else {
+        status!(301, [
+            ("Location", &res[0]),
+        ])
+    }
 }

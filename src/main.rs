@@ -1,28 +1,26 @@
 use volga::App;
+use diesel_async::{
+    pooled_connection::{bb8::Pool, AsyncDieselConnectionManager}, 
+    AsyncPgConnection
+};
 
-use diesel::prelude::*;
-
+pub(crate) mod db;
+pub(crate) mod token;
+pub(crate) mod handlers;
 pub mod schema;
-pub mod handlers;
 pub mod models;
-pub mod token;
-
-#[derive(Default, Clone)]
-pub struct DbContext;
-
-impl DbContext {
-    fn get_connection(&self) -> PgConnection {
-        let db_url = std::env::var("DATABASE_URL").unwrap();
-        PgConnection::establish(&db_url)
-            .unwrap_or_else(|_| panic!("Error connecting to {}", db_url))
-    }
-}
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let mut app = App::new().bind("0.0.0.0:8080");
 
-    app.register_singleton(DbContext);
+    let db_url = std::env::var("DATABASE_URL")
+        .expect("DATABASE_URL not set");
+    
+    // set up connection pool
+    let config = AsyncDieselConnectionManager::<AsyncPgConnection>::new(db_url);
+    let pool = Pool::builder().build(config).await.unwrap();
+    app.register_singleton(db::DbContext::new(pool));
 
     app.map_get("/{token}", handlers::get_url);
     app.map_post("/create", handlers::create_url);
