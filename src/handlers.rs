@@ -9,6 +9,7 @@ use crate::{
     db::{DbContext, DbError},
     schema::shorty_urls,
     models::ShortUrl,
+    counter::Counter,
     token::Token
 };
 
@@ -17,10 +18,15 @@ pub(crate) struct NewUrl {
     pub url: String,
 }
 
-pub(crate) async fn create_url(new_url: Json<NewUrl>, db_ctx: Dc<DbContext>) -> HttpResult {
+pub(crate) async fn create_url(
+    new_url: Json<NewUrl>,
+    mut counter: Dc<Counter>,
+    db_ctx: Dc<DbContext>
+) -> HttpResult {
     let mut conn = db_ctx.get_connection().await?;
 
-    let token = Token::new(57_000_000_000).to_string(); 
+    let count = counter.increment();
+    let token = Token::new(count).to_string(); 
     let record = ShortUrl { 
         url: new_url.url.clone(), 
         created_at: Local::now().naive_local(),

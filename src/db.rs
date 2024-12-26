@@ -1,5 +1,6 @@
 ﻿use diesel_async::{
     pooled_connection::bb8::{Pool, PooledConnection, RunError},
+    pooled_connection::PoolError,
     AsyncPgConnection
 };
 
@@ -40,5 +41,9 @@ impl DbError {
 
     pub(crate) fn query_error(err: diesel::result::Error) -> std::io::Error {
         std::io::Error::new(std::io::ErrorKind::Other, format!("Query error: {}", err))
-    } 
+    }
+
+    pub(crate) fn pool_error(err: PoolError) -> std::io::Error {
+        std::io::Error::new(std::io::ErrorKind::Other, format!("Query error: {}", err))
+    }
 }

@@ -1,11 +1,11 @@
 ﻿use std::fmt;
 
-pub struct Token {
+pub(crate) struct Token {
     value: String,
 }
 
 impl Token {
-    const MIN_VALUE: u64 = 56_800_235_584;
+    pub(crate) const MIN_VALUE: u64 = 56_800_235_584;
     const MAX_VALUE: u64 = 3_521_614_606_207;
 
     const DEFAULT_LENGTH: usize = 7;
