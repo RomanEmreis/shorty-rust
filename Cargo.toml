@@ -7,9 +7,9 @@ edition = "2021"
 chrono = "0.4.39"
 diesel-async = { version = "0.5.2", features = ["bb8", "postgres"] }
 diesel = { version = "2.2.6", features = ["chrono"] }
-serde = { version = "1.0.216", features = ["derive"] }
+serde = { version = "1.0.217", features = ["derive"] }
 tokio = { version = "1.42.0", features = ["full"] }
-volga = { version = "0.4.4", features = ["di"] }
+volga = { version = "0.4.7", features = ["di"] }
 
 [[bin]]
 name = "shorty"

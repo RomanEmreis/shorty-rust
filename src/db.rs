@@ -1,6 +1,8 @@
-﻿use diesel_async::{
+﻿use std::io::{Error, ErrorKind};
+use volga::di::{Container, Inject};
+use diesel_async::{
     pooled_connection::bb8::{Pool, PooledConnection, RunError},
-    pooled_connection::PoolError,
+    pooled_connection::{AsyncDieselConnectionManager, PoolError},
     AsyncPgConnection
 };
 
@@ -8,9 +10,9 @@ pub(crate) struct DbContext {
     pool: Pool<AsyncPgConnection>
 }
 
-impl Default for DbContext {
-    fn default() -> Self {
-        unreachable!()
+impl Inject for DbContext {
+    async fn inject(_: &mut Container) -> Result<Self, Error> {
+        Self::new().await
     }
 }
 
@@ -21,8 +23,17 @@ impl Clone for DbContext {
 }
 
 impl DbContext {
-    pub(crate) fn new(pool: Pool<AsyncPgConnection>) -> Self {
-        Self { pool }
+    pub(crate) async fn new() -> std::io::Result<DbContext> {
+        let db_url = std::env::var("DATABASE_URL")
+            .expect("DATABASE_URL not set");
+
+        let config = AsyncDieselConnectionManager::<AsyncPgConnection>::new(db_url);
+        let pool = Pool::builder()
+            .build(config)
+            .await
+            .map_err(DbError::pool_error)?;
+
+        Ok(Self { pool })
     }
 
     pub(crate) async fn get_connection(&self) -> std::io::Result<PooledConnection<AsyncPgConnection>> {
@@ -35,15 +46,15 @@ impl DbContext {
 pub(crate) struct DbError;
 
 impl DbError {
-    pub(crate) fn connection_error(err: RunError) -> std::io::Error {
-        std::io::Error::new(std::io::ErrorKind::Other, format!("DB connection error: {}", err))
+    pub(crate) fn connection_error(err: RunError) -> Error {
+        Error::new(ErrorKind::Other, format!("DB connection error: {}", err))
     }
 
-    pub(crate) fn query_error(err: diesel::result::Error) -> std::io::Error {
-        std::io::Error::new(std::io::ErrorKind::Other, format!("Query error: {}", err))
+    pub(crate) fn query_error(err: diesel::result::Error) -> Error {
+        Error::new(ErrorKind::Other, format!("Query error: {}", err))
     }
 
-    pub(crate) fn pool_error(err: PoolError) -> std::io::Error {
-        std::io::Error::new(std::io::ErrorKind::Other, format!("Query error: {}", err))
+    pub(crate) fn pool_error(err: PoolError) -> Error {
+        Error::new(ErrorKind::Other, format!("Query error: {}", err))
     }
 }

@@ -3,7 +3,7 @@
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
-use volga::{HttpResult, Json, di::Dc, ok, status};
+use volga::{HttpResult, Json, di::Dc, ok, status, redirect};
 
 use crate::{
     db::{DbContext, DbError},
@@ -19,16 +19,17 @@ pub(crate) struct NewUrl {
 }
 
 pub(crate) async fn create_url(
-    new_url: Json<NewUrl>,
+    Json(new_url): Json<NewUrl>,
     mut counter: Dc<Counter>,
     db_ctx: Dc<DbContext>
 ) -> HttpResult {
     let mut conn = db_ctx.get_connection().await?;
-
+    
     let count = counter.increment();
-    let token = Token::new(count).to_string(); 
+    let token = Token::new(count)?.to_string();
+    
     let record = ShortUrl { 
-        url: new_url.url.clone(), 
+        url: new_url.url, 
         created_at: Local::now().naive_local(),
         token
     };
@@ -40,7 +41,7 @@ pub(crate) async fn create_url(
         .await
         .map_err(DbError::query_error)?;
     
-    ok!()
+    ok!(record.token)
 }
 
 pub(crate) async fn get_url(token: String, db_ctx: Dc<DbContext>) -> HttpResult {
@@ -57,8 +58,6 @@ pub(crate) async fn get_url(token: String, db_ctx: Dc<DbContext>) -> HttpResult 
     if res.is_empty() { 
         status!(404)
     } else {
-        status!(301, [
-            ("Location", &res[0]),
-        ])
+        redirect!(&res[0])
     }
 }

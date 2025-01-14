@@ -1,4 +1,5 @@
 ﻿use std::fmt;
+use std::io::{Error, ErrorKind};
 
 pub(crate) struct Token {
     value: String,
@@ -13,9 +14,9 @@ impl Token {
 
     const CHARS: &'static str = "QoNPMlEDkABC06789zxyvwustrq21453pOnmLKjZYXWVUTSRihgfedcbJIHGFa";
 
-    pub fn new(count: u64) -> Self {
+    pub fn new(count: u64) -> Result<Self, Error> {
         if count < Self::MIN_VALUE || count > Self::MAX_VALUE {
-            panic!("count out of range");
+            return Err(Error::new(ErrorKind::InvalidData, "count out of range"));
         }
 
         let mut token = vec![' '; Self::DEFAULT_LENGTH];
@@ -31,7 +32,7 @@ impl Token {
         }
 
         let value = token.iter().collect();
-        Token { value }
+        Ok(Token { value })
     }
 }
 
