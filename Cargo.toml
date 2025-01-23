@@ -9,7 +9,9 @@ diesel-async = { version = "0.5.2", features = ["bb8", "postgres"] }
 diesel = { version = "2.2.6", features = ["chrono"] }
 serde = { version = "1.0.217", features = ["derive"] }
 tokio = { version = "1.42.0", features = ["full"] }
-volga = { version = "0.4.7", features = ["di"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19" }
+volga = { version = "0.4.9", features = ["di", "tracing"] }
 
 [[bin]]
 name = "shorty"

@@ -48,14 +48,15 @@ pub(crate) async fn get_url(token: String, db_ctx: Dc<DbContext>) -> HttpResult 
     let mut conn = db_ctx.get_connection().await?;
     
     let res: Vec<String> = shorty_urls::table
-        .filter(shorty_urls::token.eq(token))
+        .filter(shorty_urls::token.eq(&token))
         .limit(1)
         .select(shorty_urls::url)
         .load(&mut conn)
         .await
         .map_err(DbError::query_error)?;
     
-    if res.is_empty() { 
+    if res.is_empty() {
+        tracing::trace!("no url found for token: {}", token);
         status!(404)
     } else {
         redirect!(&res[0])
