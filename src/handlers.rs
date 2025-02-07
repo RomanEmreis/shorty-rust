@@ -1,9 +1,13 @@
-﻿use chrono::Local;
-
-use diesel::prelude::*;
+﻿use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 
-use volga::{HttpResult, Json, di::Dc, ok, status, redirect};
+use volga::{
+    HttpResult, 
+    Json, 
+    error::Error, 
+    di::Dc, 
+    ok, status, redirect, problem
+};
 
 use crate::{
     db::{DbContext, DbError},
@@ -23,17 +27,12 @@ pub(crate) async fn create_url(
     mut counter: Dc<Counter>,
     db_ctx: Dc<DbContext>
 ) -> HttpResult {
-    let mut conn = db_ctx.get_connection().await?;
-    
     let count = counter.increment();
-    let token = Token::new(count)?.to_string();
+    let token = Token::new(count)?;
     
-    let record = ShortUrl { 
-        url: new_url.url, 
-        created_at: Local::now().naive_local(),
-        token
-    };
+    let record = ShortUrl::new(new_url.url, token);
     
+    let mut conn = db_ctx.get_connection().await?;
     let _res = diesel::insert_into(shorty_urls::table)
         .values(&record)
         .returning(ShortUrl::as_returning())
@@ -60,5 +59,15 @@ pub(crate) async fn get_url(token: String, db_ctx: Dc<DbContext>) -> HttpResult 
         status!(404)
     } else {
         redirect!(&res[0])
+    }
+}
+
+pub(crate) async fn error(err: Error) -> HttpResult {
+    tracing::error!("{:?}", err);
+    let (status, instance, err) = err.into_parts();
+    problem! {
+        "status": status.as_u16(),
+        "detail": (err.to_string()),
+        "instance": instance,
     }
 }
