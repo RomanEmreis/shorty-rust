@@ -1,4 +1,4 @@
-use volga::{App, tracing::TracingConfig};
+use volga::App;
 use tracing_subscriber::prelude::*;
 
 pub(crate) mod db;
@@ -21,10 +21,11 @@ async fn main() -> std::io::Result<()> {
     
     let mut app = App::new()
         .bind("0.0.0.0:8080")
-        .with_tracing(TracingConfig::new()
-            .with_header());
+        .with_tracing(|tracing| tracing.with_header());
     
-    let db_ctx = db::DbContext::new().await?;
+    let db_ctx = db::DbContext::new()
+        .create_pool()
+        .await;
     
     app
         .add_singleton(db_ctx)

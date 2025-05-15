@@ -1,42 +1,48 @@
 ﻿use volga::{error::Error, di::{Container, Inject}};
 use diesel_async::{
     pooled_connection::bb8::{Pool, PooledConnection, RunError},
-    pooled_connection::{AsyncDieselConnectionManager, PoolError},
+    pooled_connection::AsyncDieselConnectionManager,
     AsyncPgConnection
 };
 
 pub(crate) struct DbContext {
-    pool: Pool<AsyncPgConnection>
+    pool: Option<Pool<AsyncPgConnection>>, 
+    connection_string: String,
 }
 
 impl Inject for DbContext {
-    async fn inject(_: &Container) -> Result<Self, Error> {
-        Self::new().await
-    }
-}
-
-impl Clone for DbContext {
-    fn clone(&self) -> Self {
-        Self { pool: self.pool.clone() }
+    fn inject(_: &Container) -> Result<Self, Error> {
+        Ok(Self::new())
     }
 }
 
 impl DbContext {
-    pub(crate) async fn new() -> Result<DbContext, Error> {
+    pub(crate) fn new() -> DbContext{
         let db_url = std::env::var("DATABASE_URL")
             .expect("DATABASE_URL must be set");
 
-        let config = AsyncDieselConnectionManager::<AsyncPgConnection>::new(db_url);
+        Self { connection_string: db_url, pool: None }
+    }
+    
+    pub(crate) async fn create_pool(mut self) -> Self {
+        if self.pool.is_some() {
+            return self;
+        }
+        
+        let config = AsyncDieselConnectionManager::<AsyncPgConnection>::new(&self.connection_string);
         let pool = Pool::builder()
             .build(config)
             .await
-            .map_err(DbError::pool_error)?;
-
-        Ok(Self { pool })
+            .expect("Unable to establish connection to database");
+        self.pool = Some(pool);
+        self   
     }
     
     pub(crate) async fn get_connection(&self) -> Result<PooledConnection<AsyncPgConnection>, Error> {
-        self.pool.get()
+        self.pool
+            .as_ref()
+            .ok_or_else(DbError::connection_lost)?
+            .get()
             .await
             .map_err(DbError::connection_error)
     }
@@ -52,8 +58,8 @@ impl DbError {
     pub(crate) fn query_error(err: diesel::result::Error) -> Error {
         Error::server_error(format!("Query error: {}", err))
     }
-
-    pub(crate) fn pool_error(err: PoolError) -> Error {
-        Error::server_error(format!("Query error: {}", err))
+    
+    pub(crate) fn connection_lost() -> Error {
+        Error::server_error("Connection lost".to_string())
     }
 }
