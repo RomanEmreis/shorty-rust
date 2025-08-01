@@ -6,13 +6,13 @@ edition = "2024"
 [dependencies]
 chrono = "0.4.41"
 dotenvy = "0.15.7"
-diesel-async = { version = "0.5.2", features = ["bb8", "postgres"] }
-diesel = { version = "2.2.10", features = ["chrono"] }
+diesel-async = { version = "0.6.1", features = ["bb8", "postgres"] }
+diesel = { version = "2.2.12", features = ["chrono"] }
 serde = { version = "1.0.219", features = ["derive"] }
 tokio = { version = "1.45.0", features = ["full"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
-volga = { version = "0.5.8", features = ["di", "tracing", "problem-details"] }
+volga = { version = "0.6.3", features = ["di-full", "tracing", "problem-details"] }
 
 [[bin]]
 name = "shorty"

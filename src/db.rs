@@ -1,23 +1,18 @@
-﻿use volga::{error::Error, di::{Container, Inject}};
+﻿use volga::{error::Error, di::Singleton};
 use diesel_async::{
     pooled_connection::bb8::{Pool, PooledConnection, RunError},
     pooled_connection::AsyncDieselConnectionManager,
     AsyncPgConnection
 };
 
+#[derive(Singleton)]
 pub(crate) struct DbContext {
     pool: Option<Pool<AsyncPgConnection>>, 
     connection_string: String,
 }
 
-impl Inject for DbContext {
-    fn inject(_: &Container) -> Result<Self, Error> {
-        Ok(Self::new())
-    }
-}
-
 impl DbContext {
-    pub(crate) fn new() -> DbContext{
+    pub(crate) fn new() -> DbContext {
         let db_url = std::env::var("DATABASE_URL")
             .expect("DATABASE_URL must be set");
 
