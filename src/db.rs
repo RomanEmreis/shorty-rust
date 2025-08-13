@@ -47,11 +47,11 @@ pub(crate) struct DbError;
 
 impl DbError {
     pub(crate) fn connection_error(err: RunError) -> Error {
-        Error::server_error(format!("DB connection error: {}", err))
+        Error::server_error(format!("DB connection error: {err}"))
     }
 
     pub(crate) fn query_error(err: diesel::result::Error) -> Error {
-        Error::server_error(format!("Query error: {}", err))
+        Error::server_error(format!("Query error: {err}"))
     }
     
     pub(crate) fn connection_lost() -> Error {

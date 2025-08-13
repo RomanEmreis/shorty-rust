@@ -1,6 +1,6 @@
 ﻿use std::sync::Arc;
 use std::sync::atomic::{Ordering, AtomicU64};
-use crate::token::Token;
+use crate::token::MIN_VALUE;
 
 pub(crate) struct Counter {
     count: Arc<AtomicU64>,
@@ -9,7 +9,7 @@ pub(crate) struct Counter {
 impl Default for Counter {
     fn default() -> Self {
         Self { 
-            count: Arc::new(AtomicU64::new(Token::MIN_VALUE))
+            count: Arc::new(AtomicU64::new(MIN_VALUE))
         }
     }
 }
