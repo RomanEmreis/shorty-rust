@@ -22,6 +22,7 @@ async fn main() -> std::io::Result<()> {
     let mut app = App::new()
         .bind("0.0.0.0:8080")
         .with_no_delay()
+        .with_cors(|cors| cors.with_any_origin())
         .with_tracing(|tracing| tracing.with_header());
     
     let db_ctx = db::DbContext::new()
@@ -32,7 +33,9 @@ async fn main() -> std::io::Result<()> {
         .add_singleton(db_ctx)
         .add_singleton(counter::Counter::default());
     
-    app.use_tracing()
+    app
+        .use_tracing()
+        .use_cors()
         .map_err(handlers::error)
         .map_get("/{token}", handlers::get_url)
         .map_post("/create", handlers::create_url);

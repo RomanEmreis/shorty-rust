@@ -1,0 +1,7 @@
+﻿[build]
+target = "index.html"
+env_files = [".env"]
+
+[serve]
+addresses = ["127.0.0.1"]
+port = 8081
