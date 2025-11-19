@@ -29,6 +29,7 @@ async fn main() -> std::io::Result<()> {
         .create_pool()
         .await;
     
+    
     app
         .add_singleton(db_ctx)
         .add_singleton(counter::Counter::default());

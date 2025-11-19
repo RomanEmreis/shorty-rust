@@ -1,11 +1,10 @@
-﻿use volga::{error::Error, di::Singleton};
+﻿use volga::error::Error;
 use diesel_async::{
     pooled_connection::bb8::{Pool, PooledConnection, RunError},
     pooled_connection::AsyncDieselConnectionManager,
     AsyncPgConnection
 };
 
-#[derive(Singleton)]
 pub(crate) struct DbContext {
     pool: Option<Pool<AsyncPgConnection>>, 
     connection_string: String,
@@ -33,7 +32,7 @@ impl DbContext {
         self   
     }
     
-    pub(crate) async fn get_connection(&self) -> Result<PooledConnection<AsyncPgConnection>, Error> {
+    pub(crate) async fn get_connection(&self) -> Result<PooledConnection<'_, AsyncPgConnection>, Error> {
         self.pool
             .as_ref()
             .ok_or_else(DbError::connection_lost)?
