@@ -36,6 +36,7 @@ async fn main() -> std::io::Result<()> {
         .await;
 
     let cache = cache::Cache::new()
+        .connect()
         .await;
     
     app
