@@ -1,54 +1,25 @@
-﻿use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
+﻿use crate::url_service::UrlService;
 use volga::{
-    HttpResult, Json, ok, status, redirect, problem,
-    error::Error, 
-    di::Dc, 
-};
-use crate::{
-    db::{DbContext, DbError},
-    schema::shorty_urls,
-    models::ShortUrl,
-    counter::Counter,
-    token::Token
+    HttpResult, Json,
+    ok, status, redirect, problem,
+    error::Error,
+    di::Dc,
+
 };
 
 #[derive(serde::Deserialize)]
-pub(crate) struct NewUrl { 
-    pub url: String,
+pub(crate) struct NewUrl {
+    url: String,
 }
 
-pub(crate) async fn create_url(
-    Json(new_url): Json<NewUrl>,
-    mut counter: Dc<Counter>,
-    db_ctx: Dc<DbContext>
-) -> HttpResult {
-    let count = counter.increment();
-    let token = Token::new(count)?;
-    let record = ShortUrl::new(new_url.url, token);
-    
-    let mut conn = db_ctx.get_connection().await?;
-    let _res = diesel::insert_into(shorty_urls::table)
-        .values(&record)
-        .returning(ShortUrl::as_returning())
-        .get_result(&mut conn)
-        .await
-        .map_err(DbError::query_error)?;
-    
+pub(crate) async fn create_url(Json(new_url): Json<NewUrl>, svc: Dc<UrlService>) -> HttpResult {
+    let record = svc.create_short_url(new_url.url).await?;
     ok!(record.token)
 }
 
-pub(crate) async fn get_url(token: String, db_ctx: Dc<DbContext>) -> HttpResult {
-    let mut conn = db_ctx.get_connection().await?;
-    let res: Vec<String> = shorty_urls::table
-        .filter(shorty_urls::token.eq(&token))
-        .limit(1)
-        .select(shorty_urls::url)
-        .load(&mut conn)
-        .await
-        .map_err(DbError::query_error)?;
-
-    res.last().map_or_else(
+pub(crate) async fn get_url(token: String, svc: Dc<UrlService>) -> HttpResult {
+    let res = svc.get_short_url(token).await?;
+    res.map_or_else(
         || status!(404),
         |url| redirect!(url)
     )

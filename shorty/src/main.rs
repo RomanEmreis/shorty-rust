@@ -1,12 +1,18 @@
 use volga::App;
 use tracing_subscriber::prelude::*;
+use crate::{
+    url_service::UrlService,
+    counter::Counter
+};
 
-pub(crate) mod db;
-pub(crate) mod token;
-pub(crate) mod handlers;
-pub(crate) mod counter;
-pub(crate) mod schema;
-pub(crate) mod models;
+mod db;
+mod token;
+mod handlers;
+mod counter;
+mod schema;
+mod models;
+mod cache;
+mod url_service;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
@@ -28,18 +34,22 @@ async fn main() -> std::io::Result<()> {
     let db_ctx = db::DbContext::new()
         .create_pool()
         .await;
-    
+
+    let cache = cache::Cache::new()
+        .await;
     
     app
         .add_singleton(db_ctx)
-        .add_singleton(counter::Counter::default());
+        .add_singleton(cache)
+        .add_scoped::<Counter>()
+        .add_scoped::<UrlService>();
     
     app
         .use_tracing()
         .use_cors()
         .map_err(handlers::error)
-        .map_get("/{token}", handlers::get_url)
-        .map_post("/create", handlers::create_url);
+        .map_post("/create", handlers::create_url)
+        .map_get("/{token}", handlers::get_url);
     
     app.run().await
 }
