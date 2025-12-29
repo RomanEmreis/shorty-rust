@@ -48,7 +48,7 @@ async fn main() -> std::io::Result<()> {
     app
         .use_tracing()
         .use_cors()
-        .map_err(handlers::error)
+        .use_problem_details()
         .map_post("/create", handlers::create_url)
         .map_get("/{token}", handlers::get_url);
     

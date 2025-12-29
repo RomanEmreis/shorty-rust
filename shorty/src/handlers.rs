@@ -1,10 +1,8 @@
 ﻿use crate::url_service::UrlService;
 use volga::{
     HttpResult, Json,
-    ok, status, redirect, problem,
-    error::Error,
+    ok, status, redirect,
     di::Dc,
-
 };
 
 #[derive(serde::Deserialize)]
@@ -23,14 +21,4 @@ pub(crate) async fn get_url(token: String, svc: Dc<UrlService>) -> HttpResult {
         || status!(404),
         |url| redirect!(url)
     )
-}
-
-pub(crate) async fn error(err: Error) -> HttpResult {
-    tracing::error!("{:?}", err);
-    let (status, instance, err) = err.into_parts();
-    problem! {
-        "status": status.as_u16(),
-        "detail": (err.to_string()),
-        "instance": instance,
-    }
 }
